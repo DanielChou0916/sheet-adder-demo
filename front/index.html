@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Sheet Column Adder Demo</title>
+</head>
+<body>
+  <h2>Google Sheet A+B -> export in a new column</h2>
+
+  <p>Paste Sheet address here:</p>
+  <input id="sheetId" style="width:420px" placeholder="SPREADSHEET_ID" />
+
+
+<!-- Attention Needed!!!!!!!! Replace the address of back end codes in "placeholder=" -->
+  <p>Apps Script Web App URL:</p>
+  <input id="scriptUrl" style="width:420px" placeholder="https://script.google.com/macros/s/AKfycbxxfqp5bvpbyM95aWH_oTwkkaZrU2Rk-jN-FtPgBUJtKVOiyvQaM6LngfLwBpj5r2gW/exec" />
+
+  <br><br>
+  <button id="runBtn">Run: column1 + column2 → 寫入 column3</button>
+
+  <p id="msg"></p>
+
+  <script src="app.js"></script>
+</body>
+</html>
