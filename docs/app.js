@@ -1,22 +1,19 @@
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxxfqp5bvpbyM95aWH_oTwkkaZrU2Rk-jN-FtPgBUJtKVOiyvQaM6LngfLwBpj5r2gW/exec";
+
 function extractSheetId(input) {
   const s = (input || "").trim();
-  // 若使用者直接貼 ID（沒有 http），就原樣回傳
-  if (!s.startsWith("http")) return s;
-
-  // 從 URL 抽出 /d/<ID>/
+  if (!s.startsWith("http")) return s; // user pasted pure id
   const m = s.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  return m ? m[1] : s; // 抽不到就回傳原字串（之後會報錯）
+  return m ? m[1] : s;
 }
 
 document.getElementById("runBtn").addEventListener("click", async () => {
   const sheetInput = document.getElementById("sheetId").value;
   const sheetId = extractSheetId(sheetInput);
-
-  const scriptUrl = document.getElementById("scriptUrl").value.trim();
   const msg = document.getElementById("msg");
 
-  if (!sheetId || !scriptUrl) {
-    msg.textContent = "請填 sheet 連結/ID 與 Apps Script Web App URL";
+  if (!sheetId) {
+    msg.textContent = "請貼上 Google Sheet 連結或 sheetId";
     return;
   }
 
@@ -30,14 +27,14 @@ document.getElementById("runBtn").addEventListener("click", async () => {
   msg.textContent = "已送出請求（寫入中）...";
 
   try {
-    await fetch(scriptUrl, {
+    await fetch(SCRIPT_URL, {
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(payload)
     });
 
-    msg.textContent = `請求已送出！(sheetId=${sheetId}) 回到 Google Sheet 看 C 欄是否出現 sum 與結果。`;
+    msg.textContent = `已送出！回到 Google Sheet 看 C 欄是否出現 sum 與結果。`;
   } catch (e) {
     msg.textContent = "送出失敗：" + String(e);
   }
