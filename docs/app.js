@@ -1,3 +1,4 @@
+//Attention Needed!!!!!!!! Replace the address of back end codes in "placeholder=" -->
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxxfqp5bvpbyM95aWH_oTwkkaZrU2Rk-jN-FtPgBUJtKVOiyvQaM6LngfLwBpj5r2gW/exec";
 
 function extractSheetId(input) {
@@ -13,7 +14,7 @@ document.getElementById("runBtn").addEventListener("click", async () => {
   const msg = document.getElementById("msg");
 
   if (!sheetId) {
-    msg.textContent = "請貼上 Google Sheet 連結或 sheetId";
+    msg.textContent = "Please paste Google Sheet link";
     return;
   }
 
@@ -24,7 +25,7 @@ document.getElementById("runBtn").addEventListener("click", async () => {
     header: "sum"
   };
 
-  msg.textContent = "已送出請求（寫入中）...";
+  msg.textContent = "Request sent(writing)...";
 
   try {
     await fetch(SCRIPT_URL, {
@@ -34,8 +35,8 @@ document.getElementById("runBtn").addEventListener("click", async () => {
       body: JSON.stringify(payload)
     });
 
-    msg.textContent = `已送出！回到 Google Sheet 看 C 欄是否出現 sum 與結果。`;
+    msg.textContent = `Please check the sheet again for results`;
   } catch (e) {
-    msg.textContent = "送出失敗：" + String(e);
+    msg.textContent = "Failed to send request" + String(e);
   }
 });
