@@ -4,20 +4,20 @@ function doPost(e) {
     const sheetId = data.sheetId;
 
     const ss = SpreadsheetApp.openById(sheetId);
-    const sheet = ss.getSheets()[0]; // demo：用第一張工作表
+    const sheet = ss.getSheets()[0]; // demo
 
-    // demo：固定 A,B → C
+    // demo：fix A,B -> calculate C=A+B
     const readA = sheet.getRange("A:A").getValues();
     const readB = sheet.getRange("B:B").getValues();
 
-    // 找到最後一列（以 A 欄為準）
+    // Find the last row
     const lastRow = sheet.getLastRow();
     if (lastRow < 2) return _ok("No data rows");
 
-    // 寫表頭
+    // Write column head
     sheet.getRange("C1").setValue("sum");
 
-    // 逐列計算（從第2列開始）
+    // Calculation row by row (start from the second row)
     const out = [];
     for (let r = 2; r <= lastRow; r++) {
       const a = Number(readA[r - 1][0]) || 0;
