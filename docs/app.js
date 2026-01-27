@@ -7,6 +7,19 @@ window.addEventListener("error", (e) => {
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxxfqp5bvpbyM95aWH_oTwkkaZrU2Rk-jN-FtPgBUJtKVOiyvQaM6LngfLwBpj5r2gW/exec";
 let SHEET_BOUNDS = null; // {lastRow,lastCol,headers}
 
+// 預設先塞一個 A，避免 dropdown 一開始是空的
+(function initColDropdownDefault() {
+  const sel = document.getElementById("colLetter");
+  if (!sel) return;
+  if (sel.options.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "A";
+    opt.textContent = "A";
+    sel.appendChild(opt);
+  }
+})();
+
+
 async function ensureBounds(sheetId) {
   if (SHEET_BOUNDS && SHEET_BOUNDS.sheetId === sheetId) return;
 
@@ -20,7 +33,9 @@ async function ensureBounds(sheetId) {
 
   // 更新 col dropdown：A..lastCol，並顯示 header
   const sel = document.getElementById("colLetter");
+  const prev = sel.value;   // 記住使用者原本選的
   sel.innerHTML = "";
+
   const A = "A".charCodeAt(0);
   const n = Math.min(res.lastCol || 1, 26); // 你目前只支援 A~Z
   for (let i = 0; i < n; i++) {
@@ -31,6 +46,9 @@ async function ensureBounds(sheetId) {
     opt.textContent = h ? `${col} (${h})` : col;
     sel.appendChild(opt);
   }
+  // 盡量把使用者原本選的 col 設回去
+  if (prev) sel.value = prev;
+
 }
 
 
@@ -78,6 +96,20 @@ function jsonp(params) {
     document.head.appendChild(script);
   });
 }
+document.getElementById("loadSheetBtn").addEventListener("click", async () => {
+  const sheetId = extractSheetId(document.getElementById("sheetId").value);
+  if (!sheetId) {
+    setMsg("Please paste a sheet URL/ID first.");
+    return;
+  }
+  try {
+    setMsg("Loading sheet bounds...");
+    await ensureBounds(sheetId);
+    setMsg(`Bounds loaded: rows=1..${SHEET_BOUNDS.lastRow}, cols=A..${String.fromCharCode("A".charCodeAt(0)+Math.min(SHEET_BOUNDS.lastCol,26)-1)}`);
+  } catch (e) {
+    setMsg("Failed to load bounds: " + String(e));
+  }
+});
 
 // (3) A+B -> C
 document.getElementById("runBtn").addEventListener("click", async () => {
