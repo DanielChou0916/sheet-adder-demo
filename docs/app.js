@@ -89,7 +89,7 @@ document.getElementById("runBtn").addEventListener("click", async () => {
 
   try {
     // 先抓一次 bounds（限制 row/col 範圍）
-    await ensureBounds(sheetId);
+    // await ensureBounds(sheetId);
 
     setMsg("Running A+B=C ...");
     const res = await jsonp({ action: "addCols", sheetId });
