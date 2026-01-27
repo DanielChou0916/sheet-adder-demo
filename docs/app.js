@@ -33,22 +33,30 @@ async function ensureBounds(sheetId) {
 
   // 更新 col dropdown：A..lastCol，並顯示 header
   const sel = document.getElementById("colLetter");
-  const prev = sel.value;   // 記住使用者原本選的
-  sel.innerHTML = "";
+  if (!sel) throw new Error("Missing <select id='colLetter'> in HTML");
+
+  const prev = sel.value || "A";
 
   const A = "A".charCodeAt(0);
-  const n = Math.min(res.lastCol || 1, 26); // 你目前只支援 A~Z
+  const n = Math.max(1, Math.min(Number(res.lastCol || 1), 26)); // 保底至少 1
+
+  // 先在記憶體建立 options，最後一次性換上去（避免中途清空）
+  const frag = document.createDocumentFragment();
   for (let i = 0; i < n; i++) {
     const col = String.fromCharCode(A + i);
     const h = (res.headers && res.headers[i]) ? res.headers[i] : "";
     const opt = document.createElement("option");
     opt.value = col;
     opt.textContent = h ? `${col} (${h})` : col;
-    sel.appendChild(opt);
+    frag.appendChild(opt);
   }
-  // 盡量把使用者原本選的 col 設回去
-  if (prev) sel.value = prev;
 
+  // ✅ 最後一步才更新 DOM（就算上面出錯也不會把原本 dropdown 清空）
+  sel.replaceChildren(frag);
+
+  // 回復原選項（若不存在就選 A）
+  sel.value = prev;
+  if (!sel.value) sel.value = "A";
 }
 
 
