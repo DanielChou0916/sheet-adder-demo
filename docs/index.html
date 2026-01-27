@@ -5,16 +5,38 @@
   <title>Sheet Column Adder Demo</title>
 </head>
 <body>
-  <h2>Google Sheet A+B -> export in a new column</h2>
+  <h2>Google Sheet Tool Demo</h2>
 
   <p>Paste Sheet address here:</p>
-  <input id="sheetId" style="width:420px" placeholder="SPREADSHEET_ID" />
-
-
-
+  <input id="sheetId" style="width:520px" placeholder="SPREADSHEET_ID or full Sheet URL" />
 
   <br><br>
+
+  <!-- (3) 保留：簡單計算 A+B=C -->
+  <h3>(3) Simple calculation</h3>
   <button id="runBtn">Run: column1 + column2 = column3</button>
+
+  <hr>
+
+  <!-- (4) 新增：單格讀取 + 顯示 + 覆寫 -->
+  <h3>(4) Data manipulation (single cell)</h3>
+
+  <div>
+    Row:
+    <input id="rowNum" type="number" min="1" value="2" style="width:80px" />
+    Column:
+    <select id="colLetter"></select>
+    <button id="loadBtn">Load cell</button>
+  </div>
+
+  <p><b>Read result</b></p>
+  <pre id="readOut" style="background:#f6f6f6;padding:10px;min-height:60px;"></pre>
+
+  <div>
+    New value:
+    <input id="newValue" style="width:260px" placeholder="new value" />
+    <button id="saveBtn">Overwrite back to Sheet</button>
+  </div>
 
   <p id="msg"></p>
 
