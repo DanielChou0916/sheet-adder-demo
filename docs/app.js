@@ -1,18 +1,40 @@
+
+window.addEventListener("error", (e) => {
+  const el = document.getElementById("msg");
+  if (el) el.textContent = "JS Error: " + (e.message || e.error);
+});
 // ====== 改成你的 Apps Script Web App /exec URL ======
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxxfqp5bvpbyM95aWH_oTwkkaZrU2Rk-jN-FtPgBUJtKVOiyvQaM6LngfLwBpj5r2gW/exec";
+let SHEET_BOUNDS = null; // {lastRow,lastCol,headers}
 
-// A~Z 下拉
-(function initColDropdown() {
+async function ensureBounds(sheetId) {
+  if (SHEET_BOUNDS && SHEET_BOUNDS.sheetId === sheetId) return;
+
+  const res = await jsonp({ action: "getBounds", sheetId });
+  if (!res.ok) throw new Error(res.error || "getBounds failed");
+  SHEET_BOUNDS = { sheetId, ...res };
+
+  // 更新 row max
+  const rowInput = document.getElementById("rowNum");
+  rowInput.max = String(res.lastRow || 1);
+
+  // 更新 col dropdown：A..lastCol，並顯示 header
   const sel = document.getElementById("colLetter");
+  sel.innerHTML = "";
   const A = "A".charCodeAt(0);
-  for (let i = 0; i < 26; i++) {
-    const c = String.fromCharCode(A + i);
+  const n = Math.min(res.lastCol || 1, 26); // 你目前只支援 A~Z
+  for (let i = 0; i < n; i++) {
+    const col = String.fromCharCode(A + i);
+    const h = (res.headers && res.headers[i]) ? res.headers[i] : "";
     const opt = document.createElement("option");
-    opt.value = c;
-    opt.textContent = c;
+    opt.value = col;
+    opt.textContent = h ? `${col} (${h})` : col;
     sel.appendChild(opt);
   }
-})();
+}
+
+
+
 
 function extractSheetId(input) {
   const s = (input || "").trim();
@@ -64,15 +86,24 @@ document.getElementById("runBtn").addEventListener("click", async () => {
     setMsg("Please paste a sheet URL/ID.");
     return;
   }
-  setMsg("Running A+B=C ...");
+
   try {
+    // 先抓一次 bounds（限制 row/col 範圍）
+    await ensureBounds(sheetId);
+
+    setMsg("Running A+B=C ...");
     const res = await jsonp({ action: "addCols", sheetId });
     if (!res.ok) throw new Error(res.error || "unknown");
+
     setMsg(res.message || "Done.");
+
+    // ✅ 重要：計算後清 bounds，下一次 Load/Save 會重新抓最新的 lastRow/lastCol
+    SHEET_BOUNDS = null;
   } catch (e) {
     setMsg("Failed: " + String(e));
   }
 });
+
 
 // (4) Load cell
 document.getElementById("loadBtn").addEventListener("click", async () => {
@@ -80,19 +111,30 @@ document.getElementById("loadBtn").addEventListener("click", async () => {
   const row = parseInt(document.getElementById("rowNum").value, 10);
   const col = document.getElementById("colLetter").value;
 
-  if (!sheetId || !row || !col) {
-    setMsg("Please fill sheetId, row, col.");
+  if (!sheetId) {
+    setMsg("Please paste a sheet URL/ID.");
+    return;
+  }
+  if (!row || row < 1) {
+    setMsg("Row must be >= 1.");
+    return;
+  }
+  if (!col) {
+    setMsg("Please select a column.");
     return;
   }
 
-  setMsg("Loading cell...");
   try {
+    // ✅ 重要：Load 前確保 bounds 是最新的
+    await ensureBounds(sheetId);
+
+    // 可選：避免剛寫入後 sheet 顯示層延遲
+    await new Promise(r => setTimeout(r, 300));
+
+    setMsg("Loading cell...");
     const res = await jsonp({ action: "getCell", sheetId, row: String(row), col });
     if (!res.ok) throw new Error(res.error || "unknown");
 
-    // 你要的輸出格式：
-    // 1) data point {row} has {feature_name} (its value).
-    // 2) And data type
     setReadOut(
       `data point ${res.row} has ${res.featureName} (${res.value})\n` +
       `data type: ${res.type}\n` +
@@ -104,6 +146,7 @@ document.getElementById("loadBtn").addEventListener("click", async () => {
   }
 });
 
+
 // (4) Save cell
 document.getElementById("saveBtn").addEventListener("click", async () => {
   const sheetId = extractSheetId(document.getElementById("sheetId").value);
@@ -111,19 +154,32 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
   const col = document.getElementById("colLetter").value;
   const value = document.getElementById("newValue").value;
 
-  if (!sheetId || !row || !col) {
-    setMsg("Please fill sheetId, row, col.");
+  if (!sheetId) {
+    setMsg("Please paste a sheet URL/ID.");
+    return;
+  }
+  if (!row || row < 1) {
+    setMsg("Row must be >= 1.");
+    return;
+  }
+  if (!col) {
+    setMsg("Please select a column.");
     return;
   }
 
-  setMsg("Saving...");
   try {
+    await ensureBounds(sheetId);
+
+    setMsg("Saving...");
     const res = await jsonp({ action: "setCell", sheetId, row: String(row), col, value });
     if (!res.ok) throw new Error(res.error || "unknown");
 
     setMsg(`Saved: ${col}${row} = ${res.writtenValue} (type=${res.writtenType})`);
 
-    // 自動再讀一次刷新顯示
+    // ✅ 寫入後，清 bounds（如果寫入造成 lastRow/lastCol 變動）
+    SHEET_BOUNDS = null;
+
+    // ✅ 讀回驗證：確保顯示的是最新值（你要的 rigor）
     const reread = await jsonp({ action: "getCell", sheetId, row: String(row), col });
     if (reread.ok) {
       setReadOut(
@@ -136,3 +192,4 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
     setMsg("Save failed: " + String(e));
   }
 });
+
