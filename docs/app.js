@@ -188,7 +188,7 @@ document.getElementById("loadBtn").addEventListener("click", async () => {
       `data type: ${res.type}\n` +
       `cell: ${res.col}${res.row}`
     );
-    setMsg("Loaded.");
+    setMsg("Loaded." + (res.ms != null ? ` (backend ms=${res.ms})` : ""));
   } catch (e) {
     setMsg("Load failed: " + String(e));
   }
@@ -222,7 +222,7 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
     const res = await jsonp({ action: "setCell", sheetId, row: String(row), col, value });
     if (!res.ok) throw new Error(res.error || "unknown");
 
-    setMsg(`Saved: ${col}${row} = ${res.writtenValue} (type=${res.writtenType})`);
+    setMsg(`Saved: ${col}${row} = ${res.writtenValue} (type=${res.writtenType})` + (res.ms != null ? ` (backend ms=${res.ms})` : ""));
 
     // ✅ 寫入後，清 bounds（如果寫入造成 lastRow/lastCol 變動）
     SHEET_BOUNDS = null;
