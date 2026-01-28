@@ -57,6 +57,7 @@ async function ensureBounds(sheetId) {
   // 回復原選項（若不存在就選 A）
   sel.value = prev;
   if (!sel.value) sel.value = "A";
+  return res;
 }
 
 
@@ -112,12 +113,19 @@ document.getElementById("loadSheetBtn").addEventListener("click", async () => {
   }
   try {
     setMsg("Loading sheet bounds...");
-    await ensureBounds(sheetId);
-    setMsg(`Bounds loaded: rows=1..${SHEET_BOUNDS.lastRow}, cols=A..${String.fromCharCode("A".charCodeAt(0)+Math.min(SHEET_BOUNDS.lastCol,26)-1)}`);
+    const res = await ensureBounds(sheetId);  // ✅ 接住回傳值
+    const ms = (res && res.ms != null) ? res.ms : "N/A";
+
+    setMsg(
+      `Bounds loaded: rows=1..${SHEET_BOUNDS.lastRow}, cols=A..${
+        String.fromCharCode("A".charCodeAt(0) + Math.min(SHEET_BOUNDS.lastCol, 26) - 1)
+      } (backend ms=${ms})`
+    );
   } catch (e) {
     setMsg("Failed to load bounds: " + String(e));
   }
 });
+
 
 // (3) A+B -> C
 document.getElementById("runBtn").addEventListener("click", async () => {
