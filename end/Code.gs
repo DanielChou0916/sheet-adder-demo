@@ -1,11 +1,28 @@
+function timed_(fn) {
+  // time cost estimation
+  const t0 = Date.now();
+  const result = fn();
+  const ms = Date.now() - t0;
+
+  // 確保回傳物件都有 ms
+  if (result && typeof result === "object") {
+    result.ms = ms;
+    return result;
+  }
+  return { ok: true, result, ms };
+}
+
+
 function doGet(e) {
   const p = e.parameter || {};
   const action = (p.action || "").trim();
 
   try {
-    if (action === "addCols") return jsonp_(p.callback, handleAddCols_(p));
-    if (action === "getCell") return jsonp_(p.callback, handleGetCell_(p));
-    if (action === "setCell") return jsonp_(p.callback, handleSetCell_(p));
+  if (action === "getBounds") return jsonp_(p.callback, timed_(() => handleGetBounds_(p)));
+  if (action === "addCols") return jsonp_(p.callback, timed_(() => handleAddCols_(p)));
+  if (action === "getCell") return jsonp_(p.callback, timed_(() => handleGetCell_(p)));
+  if (action === "setCell") return jsonp_(p.callback, timed_(() => handleSetCell_(p)));
+
     return jsonp_(p.callback, { ok: false, error: "Unknown action: " + action });
   } catch (err) {
     return jsonp_(p.callback, { ok: false, error: String(err && err.stack ? err.stack : err) });
@@ -13,6 +30,21 @@ function doGet(e) {
 }
 
 // ===== (3) 保留：你原本的 A+B->C 計算 =====
+function handleGetBounds_(p) {
+  const sheetId = required_(p, "sheetId");
+  const ss = SpreadsheetApp.openById(sheetId);
+  const sh = ss.getSheets()[0];
+
+  const lastRow = sh.getLastRow();
+  const lastCol = sh.getLastColumn();
+
+  const headers = (lastCol >= 1)
+    ? sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0]
+    : [];
+
+  return { ok: true, lastRow, lastCol, headers };
+}
+
 function handleAddCols_(p) {
   const sheetId = required_(p, "sheetId");
 
@@ -20,18 +52,20 @@ function handleAddCols_(p) {
   const sheet = ss.getSheets()[0]; // demo：第一個 sheet
 
   // demo：fix A,B -> calculate C=A+B
-  const readA = sheet.getRange("A:A").getValues();
-  const readB = sheet.getRange("B:B").getValues();
+  // const readA = sheet.getRange("A:A").getValues();
+  // const readB = sheet.getRange("B:B").getValues();
 
   const lastRow = sheet.getLastRow();
+  const aVals = sheet.getRange(2, 1, lastRow - 1, 1).getValues(); // A2:A(lastRow)
+  const bVals = sheet.getRange(2, 2, lastRow - 1, 1).getValues(); // B2:B(lastRow)
   if (lastRow < 2) return { ok: true, message: "No data rows" };
 
   sheet.getRange("C1").setValue("sum");
 
   const out = [];
-  for (let r = 2; r <= lastRow; r++) {
-    const a = Number(readA[r - 1][0]) || 0;
-    const b = Number(readB[r - 1][0]) || 0;
+  for (let i = 0; i < (lastRow - 1); i++) {
+    const a = Number(aVals[i][0]) || 0;
+    const b = Number(bVals[i][0]) || 0;
     out.push([a + b]);
   }
 
