@@ -135,7 +135,7 @@ document.getElementById("runBtn").addEventListener("click", async () => {
     const res = await jsonp({ action: "addCols", sheetId });
     if (!res.ok) throw new Error(res.error || "unknown");
 
-    setMsg(res.message || "Done.");
+    setMsg((res.message || "Done.") + (res.ms != null ? ` (backend ms=${res.ms})` : ""));
 
     // ✅ 重要：計算後清 bounds，下一次 Load/Save 會重新抓最新的 lastRow/lastCol
     SHEET_BOUNDS = null;
