@@ -4,7 +4,7 @@ window.addEventListener("error", (e) => {
 });
 
 // ====== 改成你的 Apps Script Web App /exec URL ======
-const SCRIPT_URL = "PASTE_YOUR_EXEC_URL_HERE";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxxfqp5bvpbyM95aWH_oTwkkaZrU2Rk-jN-FtPgBUJtKVOiyvQaM6LngfLwBpj5r2gW/exec";
 
 let SHEET_BOUNDS = null; // {sheetId,lastRow,lastCol,headers,ms}
 let PLOT = null; // Chart.js instance
