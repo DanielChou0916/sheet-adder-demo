@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Sheet Column Adder Demo</title>
+  <title>Sheet Tool Demo</title>
 </head>
 <body>
   <h2>Google Sheet Tool Demo</h2>
@@ -10,15 +10,32 @@
   <p>Paste Sheet address here:</p>
   <input id="sheetId" style="width:520px" placeholder="SPREADSHEET_ID or full Sheet URL" />
   <button id="loadSheetBtn">Load Sheet Info (bounds)</button>
-  <br><br>
+  <p id="msg"></p>
 
-  <!-- (3) 保留：簡單計算 A+B=C -->
+  <hr>
+
+  <!-- (2) Visualization -->
+  <h3>(2) Visualization (bar plot)</h3>
+  <div>
+    Column:
+    <select id="plotCol"></select>
+    <button id="plotBtn">Plot bar chart</button>
+    <button id="savePngBtn">Save PNG</button>
+    <button id="savePdfBtn">Save PDF</button>
+    <span id="plotInfo" style="margin-left:10px;"></span>
+  </div>
+  <br>
+  <canvas id="plotCanvas" width="900" height="360" style="max-width:900px;border:1px solid #ddd;"></canvas>
+
+  <hr>
+
+  <!-- (3) Simple calculation -->
   <h3>(3) Simple calculation</h3>
   <button id="runBtn">Run: column1 + column2 = column3</button>
 
   <hr>
 
-  <!-- (4) 新增：單格讀取 + 顯示 + 覆寫 -->
+  <!-- (4) Data manipulation -->
   <h3>(4) Data manipulation (single cell)</h3>
 
   <div>
@@ -38,7 +55,10 @@
     <button id="saveBtn">Overwrite back to Sheet</button>
   </div>
 
-  <p id="msg"></p>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- jsPDF (for Save PDF) -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
   <script src="app.js"></script>
 </body>
