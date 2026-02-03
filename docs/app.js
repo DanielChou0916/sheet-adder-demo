@@ -3,7 +3,7 @@ window.addEventListener("error", (e) => {
   if (el) el.textContent = "JS Error: " + (e.message || e.error);
 });
 
-// ====== 改成你的 Apps Script Web App /exec URL ======
+// ======  Apps Script Web App /exec URL ======
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxxfqp5bvpbyM95aWH_oTwkkaZrU2Rk-jN-FtPgBUJtKVOiyvQaM6LngfLwBpj5r2gW/exec";
 
 let SHEET_BOUNDS = null; // {sheetId,lastRow,lastCol,headers,ms}
@@ -57,7 +57,7 @@ function jsonp(params) {
   });
 }
 
-// 初始化 dropdown（避免空的）
+// Initialize dropdown（to avoid null）
 (function initDefaults() {
   const colSel = document.getElementById("colLetter");
   const plotSel = document.getElementById("plotCol");
@@ -225,7 +225,7 @@ function isMostlyNumeric(arr) {
   return num >= non;
 }
 
-// 類別統計：每個值的出現次數（Top K）
+// Categorical statictics（Top K）
 function buildCategoryCounts(arr, topK = 30) {
   const map = new Map();
   for (const v of arr) {
@@ -237,7 +237,7 @@ function buildCategoryCounts(arr, topK = 30) {
   return { labels: items.map(x=>x[0]), counts: items.map(x=>x[1]) };
 }
 
-// 數值 histogram：分箱後計數
+// Numeric histogram：divide and count
 function buildHistogram(arr, bins = 12) {
   const nums = arr.map(toNumberOrNull).filter(v => v !== null);
   if (nums.length === 0) return { labels: [], counts: [] };
@@ -245,7 +245,7 @@ function buildHistogram(arr, bins = 12) {
   let min = Math.min(...nums);
   let max = Math.max(...nums);
 
-  // 若全部一樣，做一個小範圍避免除以 0
+  // If all the same value, do simple math to aviod 0
   if (min === max) { min -= 0.5; max += 0.5; }
 
   const width = (max - min) / bins;
@@ -254,7 +254,7 @@ function buildHistogram(arr, bins = 12) {
   for (const x of nums) {
     let idx = Math.floor((x - min) / width);
     if (idx < 0) idx = 0;
-    if (idx >= bins) idx = bins - 1; // max 會落在最後一箱
+    if (idx >= bins) idx = bins - 1; // max in the last bar.
     counts[idx]++;
   }
 
@@ -315,18 +315,24 @@ document.getElementById("plotBtn").addEventListener("click", async () => {
       return;
     }
 
-    // ✅ 一律做統計的 bar plot（count）
-    if (isMostlyNumeric(vals)) {
-      const bins = 12; // 你想要更細就改大，例如 20
-      const h = buildHistogram(vals, bins);
-      plotCountBar(h.labels, h.counts, `${header} (histogram, bins=${bins})`);
-      setMsg(`Plotted histogram for numeric column ${col}.`);
-    } else {
-      const topK = 30; // 類別太多就只顯示前 30
-      const c = buildCategoryCounts(vals, topK);
-      plotCountBar(c.labels, c.counts, `${header} (top ${topK} categories)`);
-      setMsg(`Plotted category counts for column ${col}.`);
-    }
+  // Statistical bar plot（count）
+  const rawN = parseInt(document.getElementById("binsInput")?.value || "", 10);
+
+  // default bin num = 6, range = [6,60]
+  const N = Math.max(1, Math.min(Number.isFinite(rawN) ? rawN : 6, 60));
+
+  if (isMostlyNumeric(vals)) {
+    const bins = N; // numeric ->  bins
+    const h = buildHistogram(vals, bins);
+    plotCountBar(h.labels, h.counts, `${header} (histogram, bins=${bins})`);
+    setMsg(`Plotted histogram for numeric column ${col}.`);
+  } else {
+    const topK = N; // categorical -> topK
+    const c = buildCategoryCounts(vals, topK);
+    plotCountBar(c.labels, c.counts, `${header} (top ${topK} categories)`);
+    setMsg(`Plotted category counts for column ${col}.`);
+  }
+
 
     setPlotInfo(`backend ms=${res.ms ?? "N/A"}, fetch+render ms=${Math.round(t1 - t0)}`);
   } catch (e) {
