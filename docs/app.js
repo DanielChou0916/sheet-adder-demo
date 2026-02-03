@@ -319,7 +319,7 @@ document.getElementById("plotBtn").addEventListener("click", async () => {
   const rawN = parseInt(document.getElementById("binsInput")?.value || "", 10);
 
   // default bin num = 6, range = [6,60]
-  const N = Math.max(1, Math.min(Number.isFinite(rawN) ? rawN : 6, 60));
+  const N = Math.max(1, Math.min(Number.isFinite(rawN) ? rawN : 8, 60));
 
   if (isMostlyNumeric(vals)) {
     const bins = N; // numeric ->  bins
