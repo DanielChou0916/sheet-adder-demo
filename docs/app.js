@@ -238,7 +238,7 @@ function buildCategoryCounts(arr, topK = 30) {
 }
 
 // Numeric histogram：divide and count
-function buildHistogram(arr, bins = 12) {
+function buildHistogram(arr, bins = 8) {
   const nums = arr.map(toNumberOrNull).filter(v => v !== null);
   if (nums.length === 0) return { labels: [], counts: [] };
 
