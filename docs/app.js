@@ -207,31 +207,68 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
   }
 });
 
-// ===== Plot =====
+// ===== Plot (COUNT-BASED bar plot) =====
+
+function toNumberOrNull(x) {
+  const s = String(x ?? "").trim();
+  if (!s) return null;
+  const v = Number(s);
+  return Number.isFinite(v) ? v : null;
+}
 
 function isMostlyNumeric(arr) {
   let num = 0, non = 0;
-  for (const s of arr) {
-    const t = String(s ?? "").trim();
-    if (!t) continue;
-    const v = Number(t);
-    if (!Number.isNaN(v)) num++; else non++;
+  for (const v of arr) {
+    const n = toNumberOrNull(v);
+    if (n === null) non++; else num++;
   }
   return num >= non;
 }
 
+// 類別統計：每個值的出現次數（Top K）
 function buildCategoryCounts(arr, topK = 30) {
   const map = new Map();
-  for (const s of arr) {
-    const t = String(s ?? "").trim();
-    if (!t) continue;
-    map.set(t, (map.get(t) || 0) + 1);
+  for (const v of arr) {
+    const s = String(v ?? "").trim();
+    if (!s) continue;
+    map.set(s, (map.get(s) || 0) + 1);
   }
   const items = [...map.entries()].sort((a,b) => b[1]-a[1]).slice(0, topK);
-  return { labels: items.map(x=>x[0]), values: items.map(x=>x[1]) };
+  return { labels: items.map(x=>x[0]), counts: items.map(x=>x[1]) };
 }
 
-function plotBar(labels, values, title) {
+// 數值 histogram：分箱後計數
+function buildHistogram(arr, bins = 12) {
+  const nums = arr.map(toNumberOrNull).filter(v => v !== null);
+  if (nums.length === 0) return { labels: [], counts: [] };
+
+  let min = Math.min(...nums);
+  let max = Math.max(...nums);
+
+  // 若全部一樣，做一個小範圍避免除以 0
+  if (min === max) { min -= 0.5; max += 0.5; }
+
+  const width = (max - min) / bins;
+  const counts = new Array(bins).fill(0);
+
+  for (const x of nums) {
+    let idx = Math.floor((x - min) / width);
+    if (idx < 0) idx = 0;
+    if (idx >= bins) idx = bins - 1; // max 會落在最後一箱
+    counts[idx]++;
+  }
+
+  const labels = [];
+  for (let i = 0; i < bins; i++) {
+    const a = min + i * width;
+    const b = a + width;
+    labels.push(`${a.toFixed(2)}–${b.toFixed(2)}`);
+  }
+
+  return { labels, counts };
+}
+
+function plotCountBar(labels, counts, title) {
   const canvas = document.getElementById("plotCanvas");
   const ctx = canvas.getContext("2d");
   if (PLOT) PLOT.destroy();
@@ -240,11 +277,14 @@ function plotBar(labels, values, title) {
     type: "bar",
     data: {
       labels,
-      datasets: [{ label: title, data: values }]
+      datasets: [{ label: "count", data: counts }]
     },
     options: {
       responsive: true,
-      plugins: { title: { display: true, text: title } }
+      plugins: { title: { display: true, text: title } },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 } }
+      }
     }
   });
 }
@@ -275,21 +315,17 @@ document.getElementById("plotBtn").addEventListener("click", async () => {
       return;
     }
 
-    // numeric vs categorical
+    // ✅ 一律做統計的 bar plot（count）
     if (isMostlyNumeric(vals)) {
-      const cap = 200; // 避免幾千根 bar 爆炸
-      const sliced = vals.slice(0, cap);
-      const numbers = sliced.map(v => {
-        const x = Number(String(v).trim());
-        return Number.isNaN(x) ? 0 : x;
-      });
-      const labels = numbers.map((_, i) => String(i + 2)); // row start at 2
-      plotBar(labels, numbers, `${header} (first ${sliced.length} rows)`);
-      setMsg(`Plotted numeric column ${col}.`);
+      const bins = 12; // 你想要更細就改大，例如 20
+      const h = buildHistogram(vals, bins);
+      plotCountBar(h.labels, h.counts, `${header} (histogram, bins=${bins})`);
+      setMsg(`Plotted histogram for numeric column ${col}.`);
     } else {
-      const cc = buildCategoryCounts(vals, 30);
-      plotBar(cc.labels, cc.values, `${header} (top categories)`);
-      setMsg(`Plotted categorical column ${col}.`);
+      const topK = 30; // 類別太多就只顯示前 30
+      const c = buildCategoryCounts(vals, topK);
+      plotCountBar(c.labels, c.counts, `${header} (top ${topK} categories)`);
+      setMsg(`Plotted category counts for column ${col}.`);
     }
 
     setPlotInfo(`backend ms=${res.ms ?? "N/A"}, fetch+render ms=${Math.round(t1 - t0)}`);
@@ -297,6 +333,7 @@ document.getElementById("plotBtn").addEventListener("click", async () => {
     setMsg("Plot failed: " + String(e));
   }
 });
+
 
 // Save PNG
 document.getElementById("savePngBtn").addEventListener("click", () => {
