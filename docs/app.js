@@ -316,10 +316,9 @@ function plotCountBar(labels, counts, title) {
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: { title: { display: true, text: title } },
-      scales: {
-        y: { beginAtZero: true, ticks: { precision: 0 } }
-      }
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
     }
   });
 }
@@ -364,6 +363,8 @@ function plotPie(labels, counts, title) {
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: 10 },
       plugins: {
         title: { display: true, text: title },
         legend: { display: true, position: "right" }
@@ -371,6 +372,7 @@ function plotPie(labels, counts, title) {
     }
   });
 }
+
 
 
 document.getElementById("plotBtn").addEventListener("click", async () => {
