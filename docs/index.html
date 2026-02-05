@@ -15,19 +15,40 @@
   <hr>
 
   <!-- (2) Visualization -->
-  <h3>(2) Visualization (bar plot)</h3>
+  <h3>(2) Visualization</h3>
   <div>
     Column:
     <select id="plotCol"></select>
-    Bins (bars):
-    <input id="binsInput" type="number" min="1" max="60" value="8" style="width:80px" />
-    <button id="plotBtn">Plot bar chart</button>
+
+    Plot type:
+    <select id="plotType">
+      <option value="bar" selected>Bar (count)</option>
+      <option value="pie">Pie (share)</option>
+    </select>
+
+    <span id="barControls" style="margin-left:10px;">
+      Bars (bins/topK):
+      <input id="barNInput" type="number" min="1" max="60" value="8" style="width:80px" />
+    </span>
+
+    <span id="pieControls" style="margin-left:10px; display:none;">
+      Slices (topK):
+      <input id="pieTopKInput" type="number" min="2" max="20" value="6" style="width:80px" />
+      <label style="margin-left:8px;">
+        <input id="pieOthersToggle" type="checkbox" checked />
+        Others
+      </label>
+    </span>
+
+    <button id="plotBtn">Plot</button>
     <button id="savePngBtn">Save PNG</button>
     <button id="savePdfBtn">Save PDF</button>
     <span id="plotInfo" style="margin-left:10px;"></span>
   </div>
+
   <br>
   <canvas id="plotCanvas" width="900" height="360" style="max-width:900px;border:1px solid #ddd;"></canvas>
+
 
   <hr>
 

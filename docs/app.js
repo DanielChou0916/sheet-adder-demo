@@ -113,6 +113,19 @@ async function ensureBounds(sheetId) {
   return SHEET_BOUNDS;
 }
 
+// ===== Plot type UI toggle =====
+function updatePlotControls() {
+  const t = document.getElementById("plotType")?.value || "bar";
+  const bar = document.getElementById("barControls");
+  const pie = document.getElementById("pieControls");
+  if (bar) bar.style.display = (t === "bar") ? "inline" : "none";
+  if (pie) pie.style.display = (t === "pie") ? "inline" : "none";
+}
+
+document.getElementById("plotType")?.addEventListener("change", updatePlotControls);
+updatePlotControls();
+
+
 // ===== Buttons =====
 
 // Load bounds
@@ -289,13 +302,64 @@ function plotCountBar(labels, counts, title) {
   });
 }
 
+
+function buildPieCounts(arr, topK = 6, includeOthers = true) {
+  const map = new Map();
+  for (const v of arr) {
+    const s = String(v ?? "").trim();
+    if (!s) continue;
+    map.set(s, (map.get(s) || 0) + 1);
+  }
+
+  const items = [...map.entries()].sort((a, b) => b[1] - a[1]);
+  const top = items.slice(0, topK);
+  const rest = items.slice(topK);
+
+  const labels = top.map(x => x[0]);
+  const counts = top.map(x => x[1]);
+
+  if (includeOthers) {
+    const othersCount = rest.reduce((sum, x) => sum + x[1], 0);
+    if (othersCount > 0) {
+      labels.push("Others");
+      counts.push(othersCount);
+    }
+  }
+
+  return { labels, counts };
+}
+
+function plotPie(labels, counts, title) {
+  const canvas = document.getElementById("plotCanvas");
+  const ctx = canvas.getContext("2d");
+  if (PLOT) PLOT.destroy();
+
+  PLOT = new Chart(ctx, {
+    type: "pie",
+    data: {
+      labels,
+      datasets: [{ data: counts }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: { display: true, text: title },
+        legend: { display: true, position: "right" }
+      }
+    }
+  });
+}
+
+
 document.getElementById("plotBtn").addEventListener("click", async () => {
   const sheetId = extractSheetId(document.getElementById("sheetId").value);
   if (!sheetId) { setMsg("Please paste a sheet URL/ID."); return; }
 
   try {
     await ensureBounds(sheetId);
-    const col = document.getElementById("plotCol").value || "A";
+
+    const col = document.getElementById("plotCol")?.value || "A";
+    const plotType = document.getElementById("plotType")?.value || "bar";
 
     setMsg(`Fetching column ${col}...`);
     setPlotInfo("");
@@ -315,30 +379,42 @@ document.getElementById("plotBtn").addEventListener("click", async () => {
       return;
     }
 
-  // Statistical bar plot（count）
-  const rawN = parseInt(document.getElementById("binsInput")?.value || "", 10);
+    if (plotType === "bar") {
+      const rawN = parseInt(document.getElementById("barNInput")?.value || "", 10);
+      const N = Math.max(1, Math.min(Number.isFinite(rawN) ? rawN : 8, 60));
 
-  // default bin num = 6, range = [6,60]
-  const N = Math.max(1, Math.min(Number.isFinite(rawN) ? rawN : 8, 60));
+      if (isMostlyNumeric(vals)) {
+        const h = buildHistogram(vals, N);
+        plotCountBar(h.labels, h.counts, `${header} (histogram, bins=${N})`);
+        setMsg(`Plotted BAR histogram for numeric column ${col}.`);
+      } else {
+        const c = buildCategoryCounts(vals, N);
+        plotCountBar(c.labels, c.counts, `${header} (top ${N} categories)`);
+        setMsg(`Plotted BAR category counts for column ${col}.`);
+      }
+    } else {
+      const rawTopK = parseInt(document.getElementById("pieTopKInput")?.value || "", 10);
+      const topK = Math.max(2, Math.min(Number.isFinite(rawTopK) ? rawTopK : 6, 20));
+      const includeOthers = !!document.getElementById("pieOthersToggle")?.checked;
 
-  if (isMostlyNumeric(vals)) {
-    const bins = N; // numeric ->  bins
-    const h = buildHistogram(vals, bins);
-    plotCountBar(h.labels, h.counts, `${header} (histogram, bins=${bins})`);
-    setMsg(`Plotted histogram for numeric column ${col}.`);
-  } else {
-    const topK = N; // categorical -> topK
-    const c = buildCategoryCounts(vals, topK);
-    plotCountBar(c.labels, c.counts, `${header} (top ${topK} categories)`);
-    setMsg(`Plotted category counts for column ${col}.`);
-  }
-
+      if (isMostlyNumeric(vals)) {
+        const bins = topK;
+        const h = buildHistogram(vals, bins);
+        plotPie(h.labels, h.counts, `${header} (pie via histogram bins=${bins})`);
+        setMsg(`Plotted PIE (binned) for numeric column ${col}.`);
+      } else {
+        const p = buildPieCounts(vals, topK, includeOthers);
+        plotPie(p.labels, p.counts, `${header} (pie, top ${topK}${includeOthers ? " + Others" : ""})`);
+        setMsg(`Plotted PIE for categorical column ${col}.`);
+      }
+    }
 
     setPlotInfo(`backend ms=${res.ms ?? "N/A"}, fetch+render ms=${Math.round(t1 - t0)}`);
   } catch (e) {
     setMsg("Plot failed: " + String(e));
   }
 });
+
 
 
 // Save PNG
