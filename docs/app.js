@@ -273,6 +273,17 @@ function buildNumericValueCounts(vals, topK = 30) {
   };
 }
 
+function buildNumericDistribution(vals, N) {
+  const vc = buildNumericValueCounts(vals, N);
+  if (vc.uniqueCount > 0 && vc.uniqueCount <= N) {
+    return { mode: "value", labels: vc.labels, counts: vc.counts, uniqueCount: vc.uniqueCount };
+  }
+  const h = buildHistogram(vals, N);
+  return { mode: "hist", labels: h.labels, counts: h.counts, uniqueCount: vc.uniqueCount };
+}
+
+
+
 function buildHistogram(arr, bins = 8) {
   const nums = arr.map(toNumberOrNull).filter(v => v !== null);
   if (nums.length === 0) return { labels: [], counts: [] };
@@ -424,15 +435,20 @@ document.getElementById("plotBtn").addEventListener("click", async () => {
       const includeOthers = !!document.getElementById("pieOthersToggle")?.checked;
 
       if (isMostlyNumeric(vals)) {
-        const bins = topK;
-        const h = buildHistogram(vals, bins);
-        plotPie(h.labels, h.counts, `${header} (pie via histogram bins=${bins})`);
-        setMsg(`Plotted PIE (binned) for numeric column ${col}.`);
+        const dist = buildNumericDistribution(vals, topK);
+        if (dist.mode === "value") {
+          plotPie(dist.labels, dist.counts, `${header} (pie value-count, unique=${dist.uniqueCount})`);
+          setMsg(`Plotted PIE value-count for numeric column ${col}.`);
+        } else {
+          plotPie(dist.labels, dist.counts, `${header} (pie histogram bins=${topK})`);
+          setMsg(`Plotted PIE histogram for numeric column ${col}.`);
+        }
       } else {
         const p = buildPieCounts(vals, topK, includeOthers);
         plotPie(p.labels, p.counts, `${header} (pie, top ${topK}${includeOthers ? " + Others" : ""})`);
         setMsg(`Plotted PIE for categorical column ${col}.`);
       }
+
     }
 
     setPlotInfo(`backend ms=${res.ms ?? "N/A"}, fetch+render ms=${Math.round(t1 - t0)}`);
