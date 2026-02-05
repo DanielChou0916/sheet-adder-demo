@@ -261,10 +261,11 @@ function buildNumericValueCounts(vals, topK = 30) {
     map.set(key, (map.get(key) || 0) + 1);
   }
 
-  const items = [...map.entries()]
-    .sort((a, b) => Number(a[0]) - Number(b[0]));
-
-  const sliced = items.slice(0, Math.max(1, topK));
+    const items = [...map.entries()]
+      .sort((a, b) => b[1] - a[1])     // sort by count desc
+      .slice(0, Math.max(1, topK))
+      .sort((a, b) => Number(a[0]) - Number(b[0])); // then sort by value
+    const sliced = items;
 
   return {
     labels: sliced.map(x => x[0]),
