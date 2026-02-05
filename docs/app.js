@@ -251,6 +251,28 @@ function buildCategoryCounts(arr, topK = 30) {
 }
 
 // Numeric histogram：divide and count
+function buildNumericValueCounts(vals, topK = 30) {
+  const map = new Map();
+
+  for (const v of vals) {
+    const n = toNumberOrNull(v);
+    if (n === null) continue;
+    const key = String(n);
+    map.set(key, (map.get(key) || 0) + 1);
+  }
+
+  const items = [...map.entries()]
+    .sort((a, b) => Number(a[0]) - Number(b[0]));
+
+  const sliced = items.slice(0, Math.max(1, topK));
+
+  return {
+    labels: sliced.map(x => x[0]),
+    counts: sliced.map(x => x[1]),
+    uniqueCount: items.length
+  };
+}
+
 function buildHistogram(arr, bins = 8) {
   const nums = arr.map(toNumberOrNull).filter(v => v !== null);
   if (nums.length === 0) return { labels: [], counts: [] };
@@ -384,9 +406,16 @@ document.getElementById("plotBtn").addEventListener("click", async () => {
       const N = Math.max(1, Math.min(Number.isFinite(rawN) ? rawN : 8, 60));
 
       if (isMostlyNumeric(vals)) {
-        const h = buildHistogram(vals, N);
-        plotCountBar(h.labels, h.counts, `${header} (histogram, bins=${N})`);
-        setMsg(`Plotted BAR histogram for numeric column ${col}.`);
+        const vc = buildNumericValueCounts(vals, N);
+
+        if (vc.uniqueCount <= N) {
+          plotCountBar(vc.labels, vc.counts, `${header} (value counts, unique=${vc.uniqueCount})`);
+          setMsg(`Plotted BAR value-counts for numeric column ${col}.`);
+        } else {
+          const h = buildHistogram(vals, N);
+          plotCountBar(h.labels, h.counts, `${header} (histogram, bins=${N})`);
+          setMsg(`Plotted BAR histogram for numeric column ${col}.`);
+        }
       } else {
         const c = buildCategoryCounts(vals, N);
         plotCountBar(c.labels, c.counts, `${header} (top ${N} categories)`);
@@ -398,10 +427,16 @@ document.getElementById("plotBtn").addEventListener("click", async () => {
       const includeOthers = !!document.getElementById("pieOthersToggle")?.checked;
 
       if (isMostlyNumeric(vals)) {
-        const bins = topK;
-        const h = buildHistogram(vals, bins);
-        plotPie(h.labels, h.counts, `${header} (pie via histogram bins=${bins})`);
-        setMsg(`Plotted PIE (binned) for numeric column ${col}.`);
+        const vc = buildNumericValueCounts(vals, topK);
+
+        if (vc.uniqueCount <= topK) {
+          plotPie(vc.labels, vc.counts, `${header} (pie: value counts, unique=${vc.uniqueCount})`);
+          setMsg(`Plotted PIE value-counts for numeric column ${col}.`);
+        } else {
+          const h = buildHistogram(vals, topK);
+          plotPie(h.labels, h.counts, `${header} (pie via histogram bins=${topK})`);
+          setMsg(`Plotted PIE (binned) for numeric column ${col}.`);
+        }
       } else {
         const p = buildPieCounts(vals, topK, includeOthers);
         plotPie(p.labels, p.counts, `${header} (pie, top ${topK}${includeOthers ? " + Others" : ""})`);
@@ -414,6 +449,7 @@ document.getElementById("plotBtn").addEventListener("click", async () => {
     setMsg("Plot failed: " + String(e));
   }
 });
+
 
 
 
